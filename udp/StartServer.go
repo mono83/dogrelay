@@ -41,11 +41,13 @@ func StartServer(bind string, size int, to func(metrics.Event)) error {
 			} else {
 				go func(bts []byte) {
 					// Parsing
-					event, err := singleLineRead(bts)
+					events, err := multiLineRead(bts)
 					if err != nil {
 						fmt.Println(err)
 					}
-					to(event)
+					for _, e := range events {
+						to(e)
+					}
 				}(buf[0:rlen])
 			}
 		}
@@ -54,8 +56,26 @@ func StartServer(bind string, size int, to func(metrics.Event)) error {
 	return nil
 }
 
-func singleLineRead(bts []byte) (metrics.Event, error) {
-	chunks := strings.Split(strings.Replace(strings.Replace(string(bts), ":", "|", 1), "#", "", 1), "|")
+func multiLineRead(bts []byte) ([]metrics.Event, error) {
+	str := string(bts)
+	result := []metrics.Event{}
+	for _, line := range strings.Split(str, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) > 0 {
+			e, err := singleLineRead(line)
+			if err != nil {
+				return nil, err
+			}
+
+			result = append(result, e)
+		}
+	}
+
+	return result, nil
+}
+
+func singleLineRead(str string) (metrics.Event, error) {
+	chunks := strings.Split(strings.Replace(strings.Replace(str, ":", "|", 1), "#", "", 1), "|")
 	if len(chunks) < 3 {
 		return metrics.Event{}, errors.New("Invalid format string")
 	}

@@ -14,7 +14,7 @@ func main() {
 	var bind, influx string
 
 	flag.IntVar(&size, "size", 2048, "Packet size limit")
-	flag.StringVar(&bind, "bind", "", "Listening port and addressm, for example localhost:8080")
+	flag.StringVar(&bind, "bind", "", "Listening port and address, for example localhost:8080")
 	flag.StringVar(&influx, "influx", "", "InfluxDB target address and port to forward data")
 	flag.Parse()
 	if len(bind) == 0 {
