@@ -10,7 +10,9 @@ test: ## Runs unit tests
 	@go test ./...
 
 release: clean test ## Runs all release tasks
+	@echo $(shell date +'%H:%M:%S') "\033[0;32mCompiling Linux version\033[0m"
 	@GOOS="linux" GOARCH="amd64" go build -o release/dogrelay-linux64 main.go
+	@echo $(shell date +'%H:%M:%S') "\033[0;32mCompiling MacOS version\033[0m"
 	@GOOS="darwin" GOARCH="amd64" go build -o release/dogrelay-darwin64 main.go
 
 help:
