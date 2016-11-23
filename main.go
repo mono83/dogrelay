@@ -17,7 +17,7 @@ func main() {
 	var compat bool
 	var percString string
 
-	flag.IntVar(&size, "size", 2048, "Packet size limit")
+	flag.IntVar(&size, "size", 4096, "Packet size limit")
 	flag.StringVar(&bind, "bind", "", "Listening port and address, for example localhost:8080")
 	flag.StringVar(&influx, "influx", "", "InfluxDB target address and port to forward data")
 	flag.StringVar(&percString, "percentiles", "95,98", "Percentiles to calculate, comma separated")
