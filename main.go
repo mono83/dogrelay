@@ -6,23 +6,55 @@ import (
 	"github.com/mono83/dogrelay/metrics"
 	"github.com/mono83/dogrelay/udp"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
 func main() {
 	var size int
 	var bind, influx string
+	var compat bool
+	var percString string
 
 	flag.IntVar(&size, "size", 2048, "Packet size limit")
 	flag.StringVar(&bind, "bind", "", "Listening port and address, for example localhost:8080")
 	flag.StringVar(&influx, "influx", "", "InfluxDB target address and port to forward data")
+	flag.StringVar(&percString, "percentiles", "95,98", "Percentiles to calculate, comma separated")
+	flag.BoolVar(&compat, "compat", false, "StatsD compatible metrics mode. Will append .counter and .gauge for metrics")
 	flag.Parse()
 	if len(bind) == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	buf := metrics.NewBuffer([]int{90, 95, 98})
+	var percentiles []int
+	if len(percString) == 0 {
+		fmt.Println("Percentiles not provided")
+		os.Exit(4)
+
+	}
+	for _, v := range strings.Split(percString, ",") {
+		iv, err := strconv.Atoi(v)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(4)
+		} else if iv < 50 || iv > 99 {
+			fmt.Printf("Percentile must be in range [50, 99], but %d provided\n", iv)
+			os.Exit(4)
+		}
+
+		percentiles = append(percentiles, iv)
+		fmt.Printf("Will calculate %d-th percentile\n", iv)
+	}
+
+	if compat {
+		fmt.Println("StatsD compatible outgoing metrics suffixes enabled")
+	} else {
+		fmt.Println("StatsD compatible outgoing metrics suffixes disabled")
+	}
+
+	buf := metrics.NewBuffer(percentiles, compat)
 	err := udp.StartServer(bind, size, buf.Add)
 	if err != nil {
 		fmt.Println(err)
