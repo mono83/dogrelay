@@ -6,6 +6,7 @@ import (
 	"github.com/mono83/dogrelay/metrics"
 	"github.com/mono83/dogrelay/udp"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -74,17 +75,36 @@ func main() {
 		}
 	}
 
+	name, err := os.Hostname()
+	if err != nil {
+		name = "unknown"
+	} else {
+		regex := regexp.MustCompile("[^\\w]")
+		name = regex.ReplaceAllString(name, "")
+		fmt.Println("Effective hostname is", name)
+	}
+
+	params := []string{"hostname=" + name}
+
 	for {
 		time.Sleep(10 * time.Second)
+		before := time.Now()
 		if inf == nil {
 			fmt.Println()
-			for _, e := range buf.Flush() {
+			for _, e := range buf.Flush(10) {
 				fmt.Println(e.Value, "\t", e.Key())
 			}
 		} else {
-			for _, e := range buf.Flush() {
+			for _, e := range buf.Flush(10) {
 				inf.Send(e)
 			}
 		}
+
+		buf.Add(metrics.Event{
+			EventType: metrics.TypeGauge,
+			Value:     time.Now().Sub(before).Nanoseconds(),
+			Metric:    "dogrelay.pause",
+			Params:    params,
+		})
 	}
 }

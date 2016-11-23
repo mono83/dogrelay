@@ -88,9 +88,13 @@ func singleLineRead(str string) (metrics.Event, error) {
 	typeString := chunks[2]
 	params := []string{}
 	if len(chunks) > 4 {
-		params = strings.Split(chunks[4], ",")
-		for k, v := range params {
-			params[k] = strings.Replace(v, ":", "=", 1)
+		// Making tags deduplication
+		paramsMap := map[string]bool{}
+		for _, v := range strings.Split(chunks[4], ",") {
+			paramsMap[strings.Replace(v, ":", "=", 1)] = true
+		}
+		for p := range paramsMap {
+			params = append(params, p)
 		}
 		sort.Strings(params)
 	}

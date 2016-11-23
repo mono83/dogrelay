@@ -50,4 +50,11 @@ func TestSingleLineRead(t *testing.T) {
 			assert.Equal("g\tusers.online\tcountry=china\tserver=china-1", event.Key())
 		}
 	}
+	event, err = singleLineRead("users.online:800|g|@0.5|#tag1:value1,tag1:value1")
+	if assert.NoError(err) {
+		if assert.Len(event.Params, 1) {
+			assert.Equal("tag1=value1", event.Params[0])
+			assert.Equal("g\tusers.online\ttag1=value1", event.Key())
+		}
+	}
 }

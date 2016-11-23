@@ -60,7 +60,7 @@ func (b *Buffer) Add(e Event) {
 }
 
 // Flush flushes buffered events into aggregated list
-func (b *Buffer) Flush() []Event {
+func (b *Buffer) Flush(elapsed int) []Event {
 	result := []Event{}
 
 	// First lock - working with counters and gauges, and copying
@@ -100,13 +100,13 @@ func (b *Buffer) Flush() []Event {
 
 	// Flattening
 	for k, v := range local {
-		result = append(result, b.flatten(prototypes[k], int64arr(v))...)
+		result = append(result, b.flatten(prototypes[k], int64arr(v), elapsed)...)
 	}
 
 	return result
 }
 
-func (b *Buffer) flatten(proto Event, values int64arr) []Event {
+func (b *Buffer) flatten(proto Event, values int64arr, elapsed int) []Event {
 	result := []Event{}
 	sort.Sort(values)
 
@@ -128,6 +128,10 @@ func (b *Buffer) flatten(proto Event, values int64arr) []Event {
 	result = append(result, proto.WithValueSuffix(avg, compatPrefix+".avg"))
 	result = append(result, proto.WithValueSuffix(values[0], compatPrefix+".min"))
 	result = append(result, proto.WithValueSuffix(values[len(values)-1], compatPrefix+".max"))
+
+	if b.compatMode && elapsed > 0 {
+		result = append(result, proto.WithValueSuffix(int64(count/elapsed), compatPrefix+".count_ps"))
+	}
 
 	// Calculating percentiles
 	var percSum, upperSum int64
