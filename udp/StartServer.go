@@ -91,6 +91,10 @@ func singleLineRead(str string) (metrics.Event, error) {
 		// Making tags deduplication
 		paramsMap := map[string]bool{}
 		for _, v := range strings.Split(chunks[4], ",") {
+			if len(v) == 0 {
+				// Empty param
+				continue
+			}
 			paramsMap[strings.Replace(v, ":", "=", 1)] = true
 		}
 		for p := range paramsMap {

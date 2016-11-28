@@ -57,4 +57,19 @@ func TestSingleLineRead(t *testing.T) {
 			assert.Equal("g\tusers.online\ttag1=value1", event.Key())
 		}
 	}
+	event, err = singleLineRead("users.online:800|g|@0.5|#")
+	if assert.NoError(err) {
+		assert.Len(event.Params, 0)
+	}
+	event, err = singleLineRead("users.online:800|g|@0.5|#,")
+	if assert.NoError(err) {
+		assert.Len(event.Params, 0)
+	}
+	event, err = singleLineRead("users.online:800|g|@0.5|#,,foo=5")
+	if assert.NoError(err) {
+		if assert.Len(event.Params, 1) {
+			assert.Equal("foo=5", event.Params[0])
+		}
+	}
+
 }
