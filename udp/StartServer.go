@@ -91,6 +91,7 @@ func singleLineRead(str string) (metrics.Event, error) {
 		// Making tags deduplication
 		paramsMap := map[string]bool{}
 		for _, v := range strings.Split(chunks[4], ",") {
+			v = strings.TrimSpace(v)
 			if len(v) == 0 {
 				// Empty param
 				continue
