@@ -12,18 +12,28 @@ import (
 	"time"
 )
 
+var version = "1.2.0"
+
 func main() {
 	var size int
 	var bind, influx string
 	var compat bool
 	var percString string
+	var onlyVersion bool
 
 	flag.IntVar(&size, "size", 4096, "Packet size limit")
 	flag.StringVar(&bind, "bind", "", "Listening port and address, for example localhost:8080")
 	flag.StringVar(&influx, "influx", "", "InfluxDB target address and port to forward data")
 	flag.StringVar(&percString, "percentiles", "95,98", "Percentiles to calculate, comma separated")
 	flag.BoolVar(&compat, "compat", false, "StatsD compatible metrics mode. Will append .counter and .gauge for metrics")
+	flag.BoolVar(&onlyVersion, "version", false, "Show current version and exit")
 	flag.Parse()
+
+	fmt.Println("Dogrelay version is", version)
+	if onlyVersion {
+		os.Exit(0)
+	}
+
 	if len(bind) == 0 {
 		flag.Usage()
 		os.Exit(1)
