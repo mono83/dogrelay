@@ -27,10 +27,4 @@ Metric types:
 Command line arguments
 ----------------------
 
-Run binary file without argument to view help 
-
-* `bind` - address to listen incoming UDP packets
-* `size` - incoming packet size limit, default `4096`
-* `influx` - InfluxDB UDP listening port to forward data
-* `percentiles` - Percentiles to calculate, default `95,98`
-* `compat` - StatsD compatibility mode. Will append `.timer`, `.counter` and `.gauge` to outgoing metrics
+CLI interface uses `spf13/cobra`, so you can always use `--help` flag to obtain some help
