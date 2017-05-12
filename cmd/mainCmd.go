@@ -14,5 +14,6 @@ func init() {
 	MainCmd.AddCommand(
 		versionCmd,
 		influxCmd,
+		logstashToSentryCmd,
 	)
 }

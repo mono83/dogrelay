@@ -59,7 +59,7 @@ var influxCmd = &cobra.Command{
 		}
 
 		buf := metrics.NewBuffer(percentiles, influxCmdCompatMode)
-		err := udp.StartServer(influxCmdBind, influxCmdPktSize, buf.Add)
+		err := udp.StartMetricsServer(influxCmdBind, influxCmdPktSize, buf.Add)
 		if err != nil {
 			log.Error("Error starting UDP server - :err", wd.ErrParam(err))
 			return err

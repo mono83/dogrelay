@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// StartServer starts UDP listener service
-func StartServer(bind string, size int, to func(metrics.Event)) error {
+// StartServer starts plain UDP listener service
+func StartServer(bind string, size int, clb func([]byte)) error {
 	if size == 0 {
 		size = 1024 * 8
 	}
@@ -30,30 +30,38 @@ func StartServer(bind string, size int, to func(metrics.Event)) error {
 	}
 
 	running := true
-
 	// Listener
 	go func() {
+		buf := make([]byte, size)
 		for running {
-			buf := make([]byte, size)
 			rlen, _, err := socket.ReadFromUDP(buf)
 			if err != nil {
 				// Connection error
 			} else {
-				go func(bts []byte) {
-					// Parsing
-					events, err := multiLineRead(bts)
-					if err != nil {
-						fmt.Println(err)
-					}
-					for _, e := range events {
-						to(e)
-					}
-				}(buf[0:rlen])
+				go clb(buf[0:rlen])
 			}
 		}
 	}()
 
 	return nil
+}
+
+// StartMetricsServer starts UDP metrics listener service
+func StartMetricsServer(bind string, size int, to func(metrics.Event)) error {
+	return StartServer(
+		bind,
+		size,
+		func(bts []byte) {
+			// Parsing
+			events, err := multiLineRead(bts)
+			if err != nil {
+				fmt.Println(err)
+			}
+			for _, e := range events {
+				to(e)
+			}
+		},
+	)
 }
 
 func multiLineRead(bts []byte) ([]metrics.Event, error) {
