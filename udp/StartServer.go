@@ -32,8 +32,8 @@ func StartServer(bind string, size int, clb func([]byte)) error {
 	running := true
 	// Listener
 	go func() {
-		buf := make([]byte, size)
 		for running {
+			buf := make([]byte, size)
 			rlen, _, err := socket.ReadFromUDP(buf)
 			if err != nil {
 				// Connection error
