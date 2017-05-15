@@ -1,9 +1,11 @@
 # Makefile configuration
 .DEFAULT_GOAL := help
+.PHONY: clean test deps release
 
 clean: ## Clears environment
 	@echo $(shell date +'%H:%M:%S') "\033[0;33mRemoving old release\033[0m"
-	@rm release/dogrelay* 2> /dev/null || true
+	@mkdir -p release
+	@rm -rf release/*
 
 test: ## Runs unit tests
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mRunning unit tests\033[0m"
