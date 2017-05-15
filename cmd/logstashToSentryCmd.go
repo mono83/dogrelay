@@ -14,7 +14,8 @@ import (
 var ltsBind, ltsDsn, ltsProject string
 
 var logstashToSentryCmd = &cobra.Command{
-	Use: "logstash-sentry",
+	Use:   "logstash-sentry",
+	Short: "Runs logstash to sentry forwarder",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := v.All(
 			v.WithMessage(v.StringNotWhitespace(ltsBind), "Empty bind address"),

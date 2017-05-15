@@ -12,7 +12,7 @@ import (
 // SimplePacket is simplest packet, compatible with Sentry API
 type SimplePacket struct {
 	EventID     string            `json:"event_id"`
-	Fingerprint []string            `json:"fingerprint,omitempty"`
+	Fingerprint []string          `json:"fingerprint,omitempty"`
 	Message     string            `json:"message"`
 	Timestamp   Timestamp         `json:"timestamp"`
 	Logger      string            `json:"logger"`
