@@ -20,7 +20,6 @@ var logstashToSentryCmd = &cobra.Command{
 		if err := v.All(
 			v.WithMessage(v.StringNotWhitespace(ltsBind), "Empty bind address"),
 			v.WithMessage(v.StringNotWhitespace(ltsDsn), "Empty sentry DSN"),
-			v.WithMessage(v.StringNotWhitespace(ltsProject), "Empty sentry project name"),
 		); err != nil {
 			return err
 		}
@@ -42,7 +41,6 @@ var logstashToSentryCmd = &cobra.Command{
 			if err := json.Unmarshal(bts, &in); err != nil {
 				log.Warning("Unable to parse incoming JSON - :err", wd.ErrParam(err))
 			} else {
-				in.SentryProject = ltsProject
 				client.Send(in.toSimple())
 			}
 		})
@@ -61,18 +59,61 @@ func init() {
 }
 
 type incomingLogstashPacket struct {
-	SentryProject    string   `json:"-"`
-	Type             string   `json:"type"`
-	Name             string   `json:"name"`
-	Release          string   `json:"release"`
-	Level            string   `json:"log-level"`
-	Marker1          string   `json:"object"`
-	Marker2          string   `json:"marker"`
-	Message          string   `json:"message"`
-	Host             string   `json:"host"`
+	Type    string `json:"type"`
+	Name    string `json:"name"`
+	Release string `json:"release"`
+	Level   string `json:"log-level"`
+
+	// Logger markers
+	Marker1 string `json:"object"`
+	Marker2 string `json:"marker"`
+
+	// Messages
+	HMessage string `json:"hmessage"`
+	Message  string `json:"message"`
+	Pattern  string `json:"pattern"`
+
+	// Exceptions
 	ExceptionMessage []string `json:"exception-message"`
 	ExceptionClass   []string `json:"exception-class"`
 	ExceptionTrace   []string `json:"exception-trace"`
+
+	// Incoming extra
+	Host      string `json:"host"`
+	Instance  string `json:"instance"`
+	RayID     string `json:"rayId"`
+	SessionID string `json:"sessionId"`
+}
+
+func (i incomingLogstashPacket) getMessage() string {
+	if len(i.HMessage) > 0 {
+		return i.HMessage
+	}
+
+	return i.Message
+}
+
+func (i incomingLogstashPacket) getPattern() string {
+	if len(i.Pattern) > 0 {
+		return i.Pattern
+	} else if len(i.Message) > 0 {
+		return i.Message
+	}
+
+	return i.getMessage()
+}
+
+func (i incomingLogstashPacket) getSeverity() sentry.Severity {
+	switch strings.ToLower(i.Level) {
+	case "error":
+		return sentry.ERROR
+	case "alert", "critical", "emergency":
+		return sentry.FATAL
+	case "notice", "warning":
+		return sentry.WARNING
+	default:
+		return sentry.INFO
+	}
 }
 
 func (i incomingLogstashPacket) getMarker() string {
@@ -84,28 +125,35 @@ func (i incomingLogstashPacket) getMarker() string {
 	return "unknown"
 }
 
-func (i incomingLogstashPacket) toSimple() sentry.SimplePacket {
-	sev := sentry.WARNING
-	switch strings.ToLower(i.Level) {
-	case "error":
-		sev = sentry.ERROR
-	case "alert", "critical", "emergency":
-		sev = sentry.FATAL
-	case "notice", "warning":
-		sev = sentry.WARNING
+func (i incomingLogstashPacket) getRayID() string {
+	if len(i.RayID) > 0 {
+		return i.RayID
 	}
 
+	return i.SessionID
+}
+
+func (i incomingLogstashPacket) getHost() string {
+	if len(i.Instance) > 0 {
+		return i.Instance
+	}
+
+	return i.Host
+}
+
+func (i incomingLogstashPacket) toSimple() sentry.SimplePacket {
 	sim := sentry.SimplePacket{
-		Message:   i.Message,
-		Release:   i.Release,
-		Level:     sev,
-		Timestamp: sentry.Timestamp(time.Now()),
+		Message:   i.getMessage(),
+		Level:     i.getSeverity(),
 		Logger:    i.getMarker(),
-		Host:      i.Host,
+		Release:   i.Release,
+		Timestamp: sentry.Timestamp(time.Now()),
+		Host:      i.getHost(),
+		Extra:     map[string]string{},
 	}
 
 	// Generating fingerprint
-	sim.Fingerprint = []string{sim.Logger, sim.Message, string(sim.Level)}
+	sim.Fingerprint = []string{i.getMarker(), i.getPattern(), string(i.getSeverity())}
 
 	if len(i.ExceptionClass) > 0 && len(i.ExceptionMessage) == len(i.ExceptionClass) {
 		es := sentry.SimpleExceptions{}
@@ -124,6 +172,11 @@ func (i incomingLogstashPacket) toSimple() sentry.SimplePacket {
 			es.Values = append(es.Values, e)
 		}
 		sim.Exception = &es
+	}
+
+	// Extra
+	if r := i.getRayID(); len(r) > 0 {
+		sim.Extra["rayId"] = r
 	}
 
 	return sim
