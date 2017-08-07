@@ -97,21 +97,39 @@ var influxCmd = &cobra.Command{
 		for {
 			time.Sleep(10 * time.Second)
 			before := time.Now()
+			toSend, rawCount, aggCount := buf.Flush(10)
 			if inf == nil {
 				fmt.Println()
-				for _, e := range buf.Flush(10) {
+				for _, e := range toSend {
 					fmt.Println(e.Value, "\t", e.Key())
 				}
 			} else {
-				for _, e := range buf.Flush(10) {
+				for _, e := range toSend {
 					inf.Send(e)
 				}
 			}
 
+			// Adding system metric to inform about time spent to aggregate data
 			buf.Add(metrics.Event{
 				EventType: metrics.TypeGauge,
 				Value:     time.Now().Sub(before).Nanoseconds(),
 				Metric:    "dogrelay.pause",
+				Params:    params,
+			})
+
+			// Incoming metrics count
+			buf.Add(metrics.Event{
+				EventType: metrics.TypeIncrement,
+				Value:     int64(rawCount),
+				Metric:    "dogrelay.in",
+				Params:    params,
+			})
+
+			// Outgoing (aggregated) metrics count
+			buf.Add(metrics.Event{
+				EventType: metrics.TypeIncrement,
+				Value:     int64(aggCount),
+				Metric:    "dogrelay.out",
 				Params:    params,
 			})
 		}

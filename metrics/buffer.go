@@ -13,6 +13,8 @@ type Buffer struct {
 	percentiles []int
 	compatMode  bool
 
+	received int
+
 	prototypes map[string]Event
 	counters   map[string]int64
 	gauges     map[string]int64
@@ -52,20 +54,26 @@ func (b *Buffer) Add(e Event) {
 		} else {
 			b.counters[key] = e.Value
 		}
+		b.received++
 	case TypeGauge:
 		b.gauges[key] = e.Value
+		b.received++
 	case TypeDuration:
 		b.durations[key] = append(b.durations[key], e.Value)
+		b.received++
 	}
 }
 
 // Flush flushes buffered events into aggregated list
-func (b *Buffer) Flush(elapsed int) []Event {
+func (b *Buffer) Flush(elapsed int) ([]Event, int, int) {
 	result := []Event{}
 
 	// First lock - working with counters and gauges, and copying
 	// durations to local variable
 	b.lock.Lock()
+
+	recCount := b.received
+	b.received = 0
 	for k, v := range b.gauges {
 		if b.compatMode {
 			result = append(result, b.prototypes[k].WithValueSuffix(v, ".gauge"))
@@ -87,7 +95,7 @@ func (b *Buffer) Flush(elapsed int) []Event {
 	b.lock.Unlock()
 
 	if len(local) == 0 {
-		return result
+		return result, 0, 0
 	}
 
 	// Reading all prototypes, used by durations
@@ -103,7 +111,7 @@ func (b *Buffer) Flush(elapsed int) []Event {
 		result = append(result, b.flatten(prototypes[k], int64arr(v), elapsed)...)
 	}
 
-	return result
+	return result, recCount, len(result)
 }
 
 func (b *Buffer) flatten(proto Event, values int64arr, elapsed int) []Event {
@@ -128,6 +136,10 @@ func (b *Buffer) flatten(proto Event, values int64arr, elapsed int) []Event {
 	result = append(result, proto.WithValueSuffix(avg, compatPrefix+".avg"))
 	result = append(result, proto.WithValueSuffix(values[0], compatPrefix+".min"))
 	result = append(result, proto.WithValueSuffix(values[len(values)-1], compatPrefix+".max"))
+
+	// StatsD compatibility layer
+	result = append(result, proto.WithValueSuffix(values[0], compatPrefix+".lower"))
+	result = append(result, proto.WithValueSuffix(values[len(values)-1], compatPrefix+".upper"))
 
 	if b.compatMode && elapsed > 0 {
 		result = append(result, proto.WithValueSuffix(int64(count/elapsed), compatPrefix+".count_ps"))
