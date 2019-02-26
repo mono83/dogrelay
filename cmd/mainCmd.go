@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"github.com/mono83/slf/util/slfcobra"
 	"github.com/spf13/cobra"
 )
 
 // MainCmd is main dogrelay command
-var MainCmd = slfcobra.Wrap(&cobra.Command{
+var MainCmd = &cobra.Command{
 	Use: "dogrelay",
-})
+}
 
 func init() {
 	MainCmd.AddCommand(

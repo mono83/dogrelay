@@ -14,7 +14,7 @@ test: ## Runs unit tests
 deps: ## Download required dependencies
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mDownloading dependencies\033[0m"
 	@go get github.com/spf13/cobra
-	@go get github.com/mono83/slf
+	@go get github.com/mono83/xray
 	@go get github.com/mono83/validate
 	@go get github.com/mono83/udpwriter
 	@go get github.com/stretchr/testify/assert
