@@ -1,14 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/mono83/dogrelay/cmd"
-	"os"
+	"github.com/mono83/xray/std/xcobra"
 )
 
 func main() {
-	if err := cmd.MainCmd.Execute(); err != nil {
-		fmt.Println("Execution error occured:", err)
-		os.Exit(1)
-	}
+	xcobra.Start(cmd.MainCmd)
 }

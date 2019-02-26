@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"github.com/mono83/dogrelay/sentry"
 	"github.com/mono83/dogrelay/udp"
-	"github.com/mono83/slf/wd"
 	v "github.com/mono83/validate"
+	"github.com/mono83/xray"
+	"github.com/mono83/xray/args"
 	"github.com/spf13/cobra"
 	"strings"
 	"time"
 )
 
-var ltsBind, ltsDsn, ltsProject string
+var ltsBind, ltsDsn string
 
 var logstashToSentryCmd = &cobra.Command{
 	Use:   "logstash-sentry",
 	Short: "Runs logstash to sentry forwarder",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, a []string) error {
 		if err := v.All(
 			v.WithMessage(v.StringNotWhitespace(ltsBind), "Empty bind address"),
 			v.WithMessage(v.StringNotWhitespace(ltsDsn), "Empty sentry DSN"),
@@ -24,12 +25,12 @@ var logstashToSentryCmd = &cobra.Command{
 			return err
 		}
 
-		log := wd.NewLogger("logstash-sentry")
-		// Building sentry client
+		log := xray.BOOT.WithLogger("logstash-sentry")
 
+		// Building sentry client
 		client, err := sentry.NewClient(ltsDsn)
 		if err != nil {
-			log.Error("Sentry client failed - :err", wd.ErrParam(err))
+			log.Error("Sentry client failed - :err", args.Error{Err: err})
 			return err
 		}
 		log.Info("Sentry client initialized")
@@ -39,12 +40,12 @@ var logstashToSentryCmd = &cobra.Command{
 			// Reading
 			var in incomingLogstashPacket
 			if err := json.Unmarshal(bts, &in); err != nil {
-				log.Warning("Unable to parse incoming JSON - :err", wd.ErrParam(err))
+				log.Warning("Unable to parse incoming JSON - :err", args.Error{Err: err})
 			} else {
 				client.Send(in.toSimple())
 			}
 		})
-		log.Info("UDP listener in logstash format established at :addr", wd.StringParam("addr", ltsBind))
+		log.Info("UDP listener in logstash format established at :addr", args.String{N: "addr", V: ltsBind})
 
 		for {
 			time.Sleep(time.Second)
@@ -55,7 +56,6 @@ var logstashToSentryCmd = &cobra.Command{
 func init() {
 	logstashToSentryCmd.Flags().StringVar(&ltsBind, "bind", "", "Listening port and address, for example localhost:8080")
 	logstashToSentryCmd.Flags().StringVar(&ltsDsn, "dsn", "", "Sentry DSN")
-	logstashToSentryCmd.Flags().StringVar(&ltsProject, "project", "", "Sentry project name")
 }
 
 type incomingLogstashPacket struct {
@@ -79,10 +79,12 @@ type incomingLogstashPacket struct {
 	ExceptionTrace   []string `json:"exception-trace"`
 
 	// Incoming extra
-	Host      string `json:"host"`
-	Instance  string `json:"instance"`
-	RayID     string `json:"rayId"`
-	SessionID string `json:"sessionId"`
+	Host        string `json:"host"`
+	Application string `json:"app"`
+	Instance    string `json:"instance"`
+	RayID       string `json:"rayId"`
+	Route       string `json:"route"`
+	SessionID   string `json:"sessionId"`
 }
 
 func (i incomingLogstashPacket) getMessage() string {
@@ -141,14 +143,23 @@ func (i incomingLogstashPacket) getHost() string {
 	return i.Host
 }
 
+func (i incomingLogstashPacket) getApp() string {
+	if len(i.Application) > 0 {
+		return i.Application
+	}
+
+	return i.getHost()
+}
+
 func (i incomingLogstashPacket) toSimple() sentry.SimplePacket {
 	sim := sentry.SimplePacket{
 		Message:   i.getMessage(),
 		Level:     i.getSeverity(),
 		Logger:    i.getMarker(),
+		Route:     i.Route,
 		Release:   i.Release,
 		Timestamp: sentry.Timestamp(time.Now()),
-		Host:      i.getHost(),
+		Host:      i.getApp(),
 		Extra:     map[string]string{},
 	}
 

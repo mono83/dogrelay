@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/mono83/dogrelay/metrics"
 	"github.com/mono83/dogrelay/udp"
-	"github.com/mono83/slf/wd"
 	v "github.com/mono83/validate"
+	"github.com/mono83/xray"
+	"github.com/mono83/xray/args"
 	"github.com/spf13/cobra"
 	"os"
 	"regexp"
@@ -22,7 +23,7 @@ var influxCmdCompatMode bool
 var influxCmd = &cobra.Command{
 	Use:   "statsd-influx",
 	Short: "Starts buffered UDP reader, that flushes data to InfluxDb",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, a []string) error {
 		if err := v.All(
 			v.WithMessage(v.StringNotWhitespace(influxCmdPercString), "Percentiles not provided"),
 			v.WithMessage(v.StringNotWhitespace(influxCmdInfluxHost), "InfluxDB host not provided"),
@@ -31,25 +32,25 @@ var influxCmd = &cobra.Command{
 			return err
 		}
 
-		log := wd.NewLogger("statsd-influx")
+		log := xray.BOOT.WithLogger("statsd-influx")
 
 		// Parsing percentiles
 		var percentiles []int
 		for _, v := range strings.Split(influxCmdPercString, ",") {
 			iv, err := strconv.Atoi(v)
 			if err != nil {
-				log.Error("Error parsing percentiles - :err", wd.ErrParam(err))
+				log.Error("Error parsing percentiles - :err", args.Error{Err: err})
 				return err
 			} else if iv < 50 || iv > 99 {
 				log.Error(
 					"Percentile must be in range [50, 99], but :value provided",
-					wd.IntParam("value", iv),
+					args.Int{N: "value", V: iv},
 				)
-				return errors.New("Invalid percentile value")
+				return errors.New("invalid percentile value")
 			}
 
 			percentiles = append(percentiles, iv)
-			log.Info("Will calculate :value -th percentile\n", wd.IntParam("value", iv))
+			log.Info("Will calculate :value -th percentile\n", args.Int{N: "value", V: iv})
 		}
 
 		if influxCmdCompatMode {
@@ -61,25 +62,25 @@ var influxCmd = &cobra.Command{
 		buf := metrics.NewBuffer(percentiles, influxCmdCompatMode)
 		err := udp.StartMetricsServer(influxCmdBind, influxCmdPktSize, buf.Add)
 		if err != nil {
-			log.Error("Error starting UDP server - :err", wd.ErrParam(err))
+			log.Error("Error starting UDP server - :err", args.Error{Err: err})
 			return err
 		}
 		log.Info(
 			"Listening incoming UDP on :addr with packet size below :count bytes",
-			wd.StringParam("addr", influxCmdBind),
-			wd.CountParam(influxCmdPktSize),
+			args.String{N: "addr", V: influxCmdBind},
+			args.Count(influxCmdPktSize),
 		)
 
 		var inf *udp.InfluxDBSender
 		if len(influxCmdInfluxHost) > 0 {
 			inf, err = udp.NewInfluxDBSender(influxCmdInfluxHost)
 			if err != nil {
-				log.Error("Error starting InfluxDB  - :err", wd.ErrParam(err))
+				log.Error("Error starting InfluxDB  - :err", args.Error{Err: err})
 				return err
 			}
 			log.Info(
 				"Forwarding data to InfluxDB on :addr",
-				wd.StringParam("addr", influxCmdInfluxHost),
+				args.String{N: "addr", V: influxCmdBind},
 			)
 		}
 
@@ -89,7 +90,7 @@ var influxCmd = &cobra.Command{
 		} else {
 			regex := regexp.MustCompile("[^\\w]")
 			name = regex.ReplaceAllString(name, "")
-			log.Info("Effective hostname is :name", wd.NameParam(name))
+			log.Info("Effective hostname is :name", args.Name(name))
 		}
 
 		params := []string{"hostname=" + name}

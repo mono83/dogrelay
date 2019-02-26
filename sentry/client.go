@@ -89,6 +89,6 @@ func (client *Client) Send(pkt Serializeable) {
 
 func (client *Client) deliverLoop() {
 	for pkt := range client.queue {
-		client.transport.Send(client.url, client.authHeader, pkt)
+		_ = client.transport.Send(client.url, client.authHeader, pkt)
 	}
 }

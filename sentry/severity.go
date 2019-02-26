@@ -1,6 +1,6 @@
 package sentry
 
-// Severity stands for loggin level
+// Severity stands for logging level
 // http://docs.python.org/2/howto/logging.html#logging-levels
 type Severity string
 
