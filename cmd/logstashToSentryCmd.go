@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var ltsBind, ltsDsn, ltsProject string
+var ltsBind, ltsDsn string
 
 var logstashToSentryCmd = &cobra.Command{
 	Use:   "logstash-sentry",
@@ -55,7 +55,6 @@ var logstashToSentryCmd = &cobra.Command{
 func init() {
 	logstashToSentryCmd.Flags().StringVar(&ltsBind, "bind", "", "Listening port and address, for example localhost:8080")
 	logstashToSentryCmd.Flags().StringVar(&ltsDsn, "dsn", "", "Sentry DSN")
-	logstashToSentryCmd.Flags().StringVar(&ltsProject, "project", "", "Sentry project name")
 }
 
 type incomingLogstashPacket struct {
