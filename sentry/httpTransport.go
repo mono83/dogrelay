@@ -36,8 +36,8 @@ func (t *HTTPTransport) Send(url, authHeader string, packet Serializeable) error
 	if err != nil {
 		return err
 	}
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
+	_, _ = io.Copy(ioutil.Discard, res.Body)
+	_ = res.Body.Close()
 	if res.StatusCode != 200 {
 		return fmt.Errorf("raven: got http status %d", res.StatusCode)
 	}

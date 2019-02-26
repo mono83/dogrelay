@@ -16,6 +16,7 @@ type SimplePacket struct {
 	Message     string            `json:"message"`
 	Timestamp   Timestamp         `json:"timestamp"`
 	Logger      string            `json:"logger"`
+	Route       string            `json:"transaction"`
 	Level       Severity          `json:"level,omitempty"`
 	Host        string            `json:"server_name,omitempty"`
 	Release     string            `json:"release,omitempty"`
@@ -37,9 +38,9 @@ func (p SimplePacket) Serialize() (io.Reader, string, error) {
 		buf := &bytes.Buffer{}
 		b64 := base64.NewEncoder(base64.StdEncoding, buf)
 		deflate, _ := zlib.NewWriterLevel(b64, zlib.BestCompression)
-		deflate.Write(packetJSON)
-		deflate.Close()
-		b64.Close()
+		_, _ = deflate.Write(packetJSON)
+		_ = deflate.Close()
+		_ = b64.Close()
 		return buf, "application/octet-stream", nil
 	}
 	return bytes.NewReader(packetJSON), "application/json", nil
