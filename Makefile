@@ -9,7 +9,7 @@ clean: ## Clears environment
 
 test: ## Runs unit tests
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mRunning unit tests\033[0m"
-	@go test ./...
+	@CGO_ENABLED=0 go test ./...
 
 deps: ## Download required dependencies
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mDownloading dependencies\033[0m"
@@ -19,11 +19,15 @@ deps: ## Download required dependencies
 	@go get github.com/mono83/udpwriter
 	@go get github.com/stretchr/testify/assert
 
+release-docker: clean deps test ## Runs all release tasks
+	@echo $(shell date +'%H:%M:%S') "\033[0;32mCompiling Linux version\033[0m"
+	@CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -o release/dogrelay-linux64 main.go
+
 release: clean deps test ## Runs all release tasks
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mCompiling Linux version\033[0m"
-	@GOOS="linux" GOARCH="amd64" go build -o release/dogrelay-linux64 main.go
+	@CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -o release/dogrelay-linux64 main.go
 	@echo $(shell date +'%H:%M:%S') "\033[0;32mCompiling MacOS version\033[0m"
-	@GOOS="darwin" GOARCH="amd64" go build -o release/dogrelay-darwin64 main.go
+	@CGO_ENABLED=0 GOOS="darwin" GOARCH="amd64" go build -o release/dogrelay-darwin64 main.go
 
 help:
 	@grep --extended-regexp '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

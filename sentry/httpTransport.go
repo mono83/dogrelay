@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-const userAgent = "dogrelay/0.1"
+const userAgent = "dogrelay/0.2"
 
 // HTTPTransport is the default transport, delivering packets to Sentry via the
 // HTTP API.
