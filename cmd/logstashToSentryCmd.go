@@ -79,10 +79,12 @@ type incomingLogstashPacket struct {
 	ExceptionTrace   []string `json:"exception-trace"`
 
 	// Incoming extra
-	Host      string `json:"host"`
-	Instance  string `json:"instance"`
-	RayID     string `json:"rayId"`
-	SessionID string `json:"sessionId"`
+	Host        string `json:"host"`
+	Application string `json:"app"`
+	Instance    string `json:"instance"`
+	RayID       string `json:"rayId"`
+	Route       string `json:"route"`
+	SessionID   string `json:"sessionId"`
 }
 
 func (i incomingLogstashPacket) getMessage() string {
@@ -141,14 +143,23 @@ func (i incomingLogstashPacket) getHost() string {
 	return i.Host
 }
 
+func (i incomingLogstashPacket) getApp() string {
+	if len(i.Application) > 0 {
+		return i.Application
+	}
+
+	return i.getHost()
+}
+
 func (i incomingLogstashPacket) toSimple() sentry.SimplePacket {
 	sim := sentry.SimplePacket{
 		Message:   i.getMessage(),
 		Level:     i.getSeverity(),
 		Logger:    i.getMarker(),
+		Route:     i.Route,
 		Release:   i.Release,
 		Timestamp: sentry.Timestamp(time.Now()),
-		Host:      i.getHost(),
+		Host:      i.getApp(),
 		Extra:     map[string]string{},
 	}
 
