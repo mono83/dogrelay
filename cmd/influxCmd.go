@@ -32,17 +32,15 @@ var influxCmd = &cobra.Command{
 			return err
 		}
 
-		log := xray.BOOT.WithLogger("statsd-influx")
-
 		// Parsing percentiles
 		var percentiles []int
 		for _, v := range strings.Split(influxCmdPercString, ",") {
 			iv, err := strconv.Atoi(v)
 			if err != nil {
-				log.Error("Error parsing percentiles - :err", args.Error{Err: err})
+				xray.BOOT.Error("Error parsing percentiles - :err", args.Error{Err: err})
 				return err
 			} else if iv < 50 || iv > 99 {
-				log.Error(
+				xray.BOOT.Error(
 					"Percentile must be in range [50, 99], but :value provided",
 					args.Int{N: "value", V: iv},
 				)
@@ -50,22 +48,22 @@ var influxCmd = &cobra.Command{
 			}
 
 			percentiles = append(percentiles, iv)
-			log.Info("Will calculate :value -th percentile\n", args.Int{N: "value", V: iv})
+			xray.BOOT.Info("Will calculate :value -th percentile\n", args.Int{N: "value", V: iv})
 		}
 
 		if influxCmdCompatMode {
-			log.Info("StatsD compatible outgoing metrics suffixes enabled")
+			xray.BOOT.Info("StatsD compatible outgoing metrics suffixes enabled")
 		} else {
-			log.Info("StatsD compatible outgoing metrics suffixes disabled")
+			xray.BOOT.Info("StatsD compatible outgoing metrics suffixes disabled")
 		}
 
 		buf := metrics.NewBuffer(percentiles, influxCmdCompatMode)
 		err := udp.StartMetricsServer(influxCmdBind, influxCmdPktSize, buf.Add)
 		if err != nil {
-			log.Error("Error starting UDP server - :err", args.Error{Err: err})
+			xray.BOOT.Error("Error starting UDP server - :err", args.Error{Err: err})
 			return err
 		}
-		log.Info(
+		xray.BOOT.Info(
 			"Listening incoming UDP on :addr with packet size below :count bytes",
 			args.String{N: "addr", V: influxCmdBind},
 			args.Count(influxCmdPktSize),
@@ -75,10 +73,10 @@ var influxCmd = &cobra.Command{
 		if len(influxCmdInfluxHost) > 0 {
 			inf, err = udp.NewInfluxDBSender(influxCmdInfluxHost)
 			if err != nil {
-				log.Error("Error starting InfluxDB  - :err", args.Error{Err: err})
+				xray.BOOT.Error("Error starting InfluxDB  - :err", args.Error{Err: err})
 				return err
 			}
-			log.Info(
+			xray.BOOT.Info(
 				"Forwarding data to InfluxDB on :addr",
 				args.String{N: "addr", V: influxCmdBind},
 			)
@@ -90,10 +88,11 @@ var influxCmd = &cobra.Command{
 		} else {
 			regex := regexp.MustCompile("[^\\w]")
 			name = regex.ReplaceAllString(name, "")
-			log.Info("Effective hostname is :name", args.Name(name))
+			xray.BOOT.Info("Effective hostname is :name", args.Name(name))
 		}
 
 		params := []string{"hostname=" + name}
+		checkAndRunPrometheus()
 
 		for {
 			time.Sleep(10 * time.Second)
@@ -143,4 +142,5 @@ func init() {
 	influxCmd.Flags().StringVar(&influxCmdInfluxHost, "influx", "", "InfluxDB target address and port to forward data")
 	influxCmd.Flags().StringVar(&influxCmdPercString, "percentiles", "95,98", "Percentiles to calculate, comma separated")
 	influxCmd.Flags().BoolVar(&influxCmdCompatMode, "compat", false, "StatsD compatible metrics mode. Will append .counter and .gauge for metrics")
+	influxCmd.Flags().StringVarP(&prometheusBind, "export-prometheus", "e", "", "Starts Prometheus exporter on given address, like :12345")
 }

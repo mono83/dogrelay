@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mono83/dogrelay/metrics"
+	"github.com/mono83/xray"
 	"net"
 	"sort"
 	"strconv"
@@ -17,7 +18,7 @@ func StartServer(bind string, size int, clb func([]byte)) error {
 	}
 
 	if bind == "" {
-		return errors.New("Empty UDP address")
+		return errors.New("empty UDP address")
 	}
 	address, err := net.ResolveUDPAddr("udp", bind)
 	if err != nil {
@@ -30,14 +31,19 @@ func StartServer(bind string, size int, clb func([]byte)) error {
 	}
 
 	running := true
+	log := xray.ROOT.Fork()
 	// Listener
 	go func() {
 		for running {
 			buf := make([]byte, size)
 			rlen, _, err := socket.ReadFromUDP(buf)
+			log.Inc("in.udp.count")
+			log.Increment("in.udp.size", int64(rlen))
 			if err != nil {
 				// Connection error
+				log.Inc("in.udp.error")
 			} else {
+				// Handling data
 				go clb(buf[0:rlen])
 			}
 		}
@@ -66,7 +72,7 @@ func StartMetricsServer(bind string, size int, to func(metrics.Event)) error {
 
 func multiLineRead(bts []byte) ([]metrics.Event, error) {
 	str := string(bts)
-	result := []metrics.Event{}
+	var result []metrics.Event
 	for _, line := range strings.Split(str, "\n") {
 		line = strings.TrimSpace(line)
 		if len(line) > 0 {
@@ -94,7 +100,7 @@ func singleLineRead(str string) (metrics.Event, error) {
 		return metrics.Event{}, err
 	}
 	typeString := chunks[2]
-	params := []string{}
+	var params []string
 	if len(chunks) > 4 {
 		// Making tags deduplication
 		paramsMap := map[string]bool{}
@@ -121,5 +127,5 @@ func singleLineRead(str string) (metrics.Event, error) {
 		return metrics.Event{EventType: metrics.TypeDuration, Metric: metric, Value: value, Params: params}, nil
 	}
 
-	return metrics.Event{}, fmt.Errorf("Unsupported format %s", typeString)
+	return metrics.Event{}, fmt.Errorf("unsupported format %s", typeString)
 }

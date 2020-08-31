@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"github.com/mono83/dogrelay/metrics"
 	"github.com/mono83/udpwriter"
+	"github.com/mono83/xray"
 	"io"
 	"strconv"
+	"time"
 )
 
 // InfluxDBSender is adapter, used to send metrics events to InfluxDB
 type InfluxDBSender struct {
 	writer io.Writer
+	log    xray.Ray
 }
 
 // NewInfluxDBSender builds and returns new adapter for InfluxDB
@@ -21,6 +24,8 @@ func NewInfluxDBSender(addr string) (*InfluxDBSender, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	snd.log = xray.ROOT.Fork().WithLogger("indfluxdb-sender").WithMetricPrefix("influxdb")
 
 	return snd, nil
 }
@@ -39,5 +44,9 @@ func (i *InfluxDBSender) Send(e metrics.Event) {
 	buf.WriteString(strconv.FormatInt(e.Value, 10))
 	buf.WriteRune('\n')
 
-	i.writer.Write(buf.Bytes())
+	i.log.Increment("flush.size", int64(buf.Len()))
+
+	before := time.Now()
+	_, _ = i.writer.Write(buf.Bytes())
+	i.log.Duration("flush.latency", time.Now().Sub(before))
 }

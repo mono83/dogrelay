@@ -56,6 +56,7 @@ var logstashToSentryCmd = &cobra.Command{
 func init() {
 	logstashToSentryCmd.Flags().StringVar(&ltsBind, "bind", "", "Listening port and address, for example localhost:8080")
 	logstashToSentryCmd.Flags().StringVar(&ltsDsn, "dsn", "", "Sentry DSN")
+	logstashToSentryCmd.Flags().StringVarP(&prometheusBind, "export-prometheus", "e", "", "Starts Prometheus exporter on given address, like :12345")
 }
 
 type incomingLogstashPacket struct {
