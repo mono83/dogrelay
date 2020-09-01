@@ -12,6 +12,7 @@ var MainCmd = &cobra.Command{
 func init() {
 	MainCmd.AddCommand(
 		versionCmd,
+		blackholeCmd,
 		influxCmd,
 		logstashToSentryCmd,
 	)
