@@ -1,7 +1,6 @@
 package udp
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -16,6 +15,7 @@ type ByteDispatcher interface {
 
 // NewByteDispatcher constructs new byte dispatcher with given constrain.
 // When one of given limits is exceeded, dispatcher will drop current packet.
+// Zero for each parameters means no limit.
 func NewByteDispatcher(limitQueueCount, limitQueueSize int) ByteDispatcher {
 	return &byteDispatcher{
 		in:         make(chan []byte),
@@ -66,13 +66,6 @@ func (d *byteDispatcher) Publish(b []byte) {
 			d.queueSize += l
 		}
 		d.m.Unlock()
-
-		if d.queueSize > d.limitSize {
-			fmt.Println("SIZE")
-		}
-		if d.queueCount > d.limitCount {
-			fmt.Println("COUNT")
-		}
 
 		if deliver {
 			go d.publish(b)
