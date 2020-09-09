@@ -77,7 +77,7 @@ var elasticCmd = &cobra.Command{
 }
 
 func init() {
-	elasticCmd.Flags().BoolVarP(&elasticEnsureTemplate, "ensure", "e", false, "If true, attempts to create index template")
+	elasticCmd.Flags().BoolVarP(&elasticEnsureTemplate, "ensure", "s", false, "If true, attempts to create index template")
 	elasticCmd.Flags().IntVar(&elasticLimitQueueCount, "limit-count", 0, "Max items in delivery queue")
 	elasticCmd.Flags().IntVar(&elasticLimitQueueSize, "limit-size", 0, "Max bytes in delivery queue")
 	elasticCmd.Flags().IntVar(&elasticUdpBufferSize, "buffer", 8*4096, "UDP buffer size")
