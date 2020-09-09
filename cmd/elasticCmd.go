@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"github.com/mono83/dogrelay/elastic"
 	"github.com/mono83/dogrelay/udp"
 	"github.com/mono83/xray"
@@ -46,8 +45,7 @@ var elasticCmd = &cobra.Command{
 
 			go func(cl *elastic.Client) {
 				for b := range dis.Channel() {
-					err := cl.Write(b)
-					fmt.Println(err)
+					_ = cl.Write(b)
 				}
 			}(cl)
 		}
