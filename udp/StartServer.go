@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mono83/dogrelay/metrics"
 	"github.com/mono83/xray"
+	"github.com/mono83/xray/args"
 	"net"
 	"sort"
 	"strconv"
@@ -29,6 +30,8 @@ func StartServer(bind string, size int, clb func([]byte)) error {
 	if err != nil {
 		return err
 	}
+
+	xray.BOOT.Info("UDP listener running on :addr with buffer :count bytes", args.Addr(bind), args.Count(size))
 
 	running := true
 	log := xray.ROOT.Fork()

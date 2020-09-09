@@ -1,6 +1,8 @@
 package udp
 
 import (
+	"github.com/mono83/xray"
+	"github.com/mono83/xray/args"
 	"sync"
 )
 
@@ -17,6 +19,17 @@ type ByteDispatcher interface {
 // When one of given limits is exceeded, dispatcher will drop current packet.
 // Zero for each parameters means no limit.
 func NewByteDispatcher(limitQueueCount, limitQueueSize int) ByteDispatcher {
+	if limitQueueCount == 0 {
+		xray.BOOT.Warning("Byte dispatcher has no count limit")
+	} else {
+		xray.BOOT.Info("Byte dispatcher configured with :count count limit", args.Count(limitQueueCount))
+	}
+	if limitQueueSize == 0 {
+		xray.BOOT.Warning("Byte dispatcher has no size limit")
+	} else {
+		xray.BOOT.Info("Byte dispatcher configured with :count bytes size limit", args.Count(limitQueueSize))
+	}
+
 	return &byteDispatcher{
 		in:         make(chan []byte),
 		out:        make(chan []byte),
