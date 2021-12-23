@@ -31,7 +31,7 @@ func NewClient(addresses []string, indexFormat, user, pass string) (*Client, err
 		Username:             user,
 		Password:             pass,
 		EnableRetryOnTimeout: true,
-		DiscoverNodesOnStart: true,
+		//DiscoverNodesOnStart: true,
 	}
 	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
@@ -90,22 +90,29 @@ func (c *Client) CreateIndexTemplate() error {
 // Write writes data to ES
 func (c *Client) Write(b []byte) error {
 	req := esapi.IndexRequest{
-		Index: time.Now().Format(c.indexFormat),
-		Body:  bytes.NewReader(b),
+		Index:      time.Now().Format(c.indexFormat),
+		Body:       bytes.NewReader(b),
+		Refresh:    "true",
+		DocumentID: "",
 	}
 
 	// Performing request
 	res, err := req.Do(context.Background(), c.client)
 	if err != nil {
+		c.logger.Error("WTF - :err", args.Error{Err: err})
 		c.logger.Inc("error", args.Type("io"))
 		return err
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
+		c.logger.Error(res.Status())
 		c.logger.Inc("error", args.Type("derived"))
 		return fmt.Errorf("error indexing " + res.Status())
 	}
+
+	fmt.Println(time.Now().Format(c.indexFormat))
+	fmt.Println(string(b))
 
 	return nil
 }
