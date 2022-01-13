@@ -27,10 +27,10 @@ func NewClient(addresses []string, indexFormat, user, pass string) (*Client, err
 		xray.BOOT.Info("ElasticSearch address is :addr", args.Addr(addr))
 	}
 	cfg := elasticsearch.Config{
-		Addresses:            addresses,
-		Username:             user,
-		Password:             pass,
-		EnableRetryOnTimeout: true,
+		Addresses: addresses,
+		Username:  user,
+		Password:  pass,
+		//EnableRetryOnTimeout: true, // deprecated
 		//DiscoverNodesOnStart: true,
 	}
 	es, err := elasticsearch.NewClient(cfg)
